@@ -12,7 +12,7 @@
 #include <string>
 
 // Project includes
-#include "RtlFmParameterBuilder.hpp"
+// <none>
 
 template <typename Commandable>
 class Command

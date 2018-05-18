@@ -12,63 +12,13 @@
 #include <stdexcept>
 
 // Project includes
-#include "AtanMath.hpp"
 #include "Command.hpp"
 #include "CommandParser.hpp"
-#include "DeviceIndex.hpp"
-#include "EnableOption.hpp"
-#include "FirSize.hpp"
-#include "Frequency.hpp"
-#include "ModulationMode.hpp"
-#include "Oversampling.hpp"
-#include "PpmError.hpp"
-#include "ResampleRate.hpp"
-#include "RtlFmParameterBuilder.hpp"
-#include "RtlFmRunner.hpp"
-#include "SampleRate.hpp"
-#include "ScannableFrequency.hpp"
-#include "SquelchDelay.hpp"
-#include "SquelchLevel.hpp"
 #include "SystemUtils.hpp"
 #include "SystemUtils.hpp"
 #include "TcpServer.hpp"
-#include "TunerGain.hpp"
 
 // Static initialization
-const Command<RtlFmParameterBuilder> CommandParser::RTL_FM_PARAMETER_BUILDER_CMDS[]
-{
-    Command<RtlFmParameterBuilder> { DeviceIndex::COMMAND, &RtlFmParameterBuilder::setDeviceIndex, "Sets the index of the RTL_SDR dongle to use"},
-    Command<RtlFmParameterBuilder> { EnableOption::COMMAND, &RtlFmParameterBuilder::setEnableOption, "Enables extra options"},
-    Command<RtlFmParameterBuilder> { FirSize::COMMAND, &RtlFmParameterBuilder::setFirSize, "Sets the high quality FIR downsampler. -1 = off, 0 or 9 enable it"},
-	Command<RtlFmParameterBuilder> { Frequency::COMMAND, &RtlFmParameterBuilder::setFrequency, "Sets the frequency to tune"},
-    Command<RtlFmParameterBuilder> { ModulationMode::COMMAND, &RtlFmParameterBuilder::setModulationMode, "Sets the modulation mode to use"},
-    Command<RtlFmParameterBuilder> { Oversampling::COMMAND, &RtlFmParameterBuilder::setOversampling, "Sets the oversampling level"},
-    Command<RtlFmParameterBuilder> { PpmError::COMMAND, &RtlFmParameterBuilder::setPpmError, "Sets the ppm level"},
-    Command<RtlFmParameterBuilder> { SampleRate::COMMAND, &RtlFmParameterBuilder::setSampleRate, "Sets the sampling rate"},
-    Command<RtlFmParameterBuilder> { SquelchDelay::COMMAND, &RtlFmParameterBuilder::setSquelchDelay, "Sets the squelch delay"},
-    Command<RtlFmParameterBuilder> { SquelchLevel::COMMAND, &RtlFmParameterBuilder::setSquelchLevel, "Sets the squelch level"},
-    Command<RtlFmParameterBuilder> { ResampleRate::COMMAND, &RtlFmParameterBuilder::setResampleRate, "Sets the resampling rate"},
-    Command<RtlFmParameterBuilder> { AtanMath::COMMAND, &RtlFmParameterBuilder::setAtanMath, "Sets the archtangent math mode"},
-    Command<RtlFmParameterBuilder> { TunerGain::COMMAND, &RtlFmParameterBuilder::setTunerGain, "Sets the tuner gain. -100 is automatic"},
-    Command<RtlFmParameterBuilder> { "BROADCAST_AM", &RtlFmParameterBuilder::broadcastAmStationMacro, "Input: AM broadcast station's freq in kHz."
-                                        " Sets sample rate = 128k, enables: direct sampling, AM demodulation"},
-    Command<RtlFmParameterBuilder> { "BROADCAST_FM", &RtlFmParameterBuilder::broadcastFmStationMacro, "Input: FM broadcast station's freq in MHz."
-                                        " Sets wbfm demodulation."},
-    Command<RtlFmParameterBuilder> { ScannableFrequency::COMMAND, &RtlFmParameterBuilder::setScannableFrequency,
-                                            "Scans a frequency range. Format is START:END:INCREMENT. SquelchLevel must be set to use this"},
-    Command<RtlFmParameterBuilder> { "CLEAR", &RtlFmParameterBuilder::clearParamLists, "No param. Resets the lists of stored commands"},
-    Command<RtlFmParameterBuilder> { "EXECUTE", &RtlFmParameterBuilder::executeCommand, "No param. Executes rtl_fm with the new params"},
-    Command<RtlFmParameterBuilder> { "MY_STORED_CMDS", &RtlFmParameterBuilder::getUserProvidedCommands, "Returns all of the commands entered by this user after "
-                                        "having executed CLEAR or EXECUTE"}
-};
-
-const Command<RtlFmRunner> CommandParser::RTL_FM_RUNNER_CMDS[]
-{
-    Command<RtlFmRunner> { "STOP", &RtlFmRunner::stopCommandHandler, "Kills rtl_fm and aplay. Stops the audio stream."},
-    Command<RtlFmRunner> { "CMDS_IN_USE", &RtlFmRunner::getUserProvidedCommandsInUse, "Returns all user provided commands in use for the current invocation of"
-                                "rtl_fm and aplay"}
-};
-
 const Command<SystemUtils> CommandParser::SYSTEM_UTILS_CMDS[]
 {
     Command<SystemUtils> { SystemUtils::VOLUME_SETTER_COMMAND, &SystemUtils::setVolumeCommandHandler, "Sets the system volume. Specify as a percentage."}
@@ -80,8 +30,6 @@ const Command<TcpServer> CommandParser::SERVER_CMDS[]
     Command<TcpServer> { "CLIENTS_INFO", &TcpServer::getClientsInfoHandler, "Gets the IP and port #s of connected clients"}
 };
 
-const size_t CommandParser::RTL_FM_PARAMETER_BUILDER_CMDS_LIST_LENGTH = sizeof(RTL_FM_PARAMETER_BUILDER_CMDS) / sizeof(Command<RtlFmParameterBuilder>);
-const size_t CommandParser::RTL_FM_RUNNER_CMDS_LIST_LENGTH = sizeof(RTL_FM_RUNNER_CMDS) / sizeof(Command<RtlFmRunner>);
 const size_t CommandParser::SYSTEM_UTILS_CMDS_LIST_LENGTH = sizeof(SYSTEM_UTILS_CMDS) / sizeof(Command<SystemUtils>);
 const size_t CommandParser::SERVER_CMDS_LIST_LENGTH = sizeof(SERVER_CMDS) / sizeof(Command<TcpServer>);
 
@@ -102,7 +50,7 @@ const std::string CommandParser::UNUSED_PARAM_VALUE = "default";
  *
  * TODO: Throw exceptions for bad commands
  */
-std::string CommandParser::execute(const std::string& unparsedCommand, RtlFmParameterBuilder& rtlFmParamBuilder) const
+std::string CommandParser::execute(const std::string& unparsedCommand) const
 {
     std::string cmd;
     std::string param;
@@ -122,38 +70,6 @@ std::string CommandParser::execute(const std::string& unparsedCommand, RtlFmPara
     try
     {
         std::string funcUpdatableString = EXECUTION_OK_STRING;
-        // Parameter builder commands
-        for (size_t idx = 0; idx < RTL_FM_PARAMETER_BUILDER_CMDS_LIST_LENGTH; ++idx)
-        {
-            Command<RtlFmParameterBuilder> rtlFmParamBuilderCmd = RTL_FM_PARAMETER_BUILDER_CMDS[idx];
-            if (cmd.compare(rtlFmParamBuilderCmd.getCommandString()) == 0)
-            {
-                std::cout << "Executing: " << cmd << "(" << param << ")" << std::endl;
-                rtlFmParamBuilderCmd.exec(param, &funcUpdatableString, rtlFmParamBuilder);
-
-                // RtlFmParamBuilder commands w/o parameters are not added
-                // to this list
-                if (param != UNUSED_PARAM_VALUE)
-                {
-                    rtlFmParamBuilder.storeUserEnteredCommand(cmd, FUNCTION_AND_PARAM_SEPARATOR, param);
-                }
-
-                return funcUpdatableString;
-            }
-        }
-
-        // RtlFmRunner commands
-        for (size_t idx = 0; idx < RTL_FM_RUNNER_CMDS_LIST_LENGTH; ++idx)
-        {
-            Command<RtlFmRunner> rtlFmRunnerCmd = RTL_FM_RUNNER_CMDS[idx];
-            if (cmd.compare(rtlFmRunnerCmd.getCommandString()) == 0)
-            {
-                std::cout << "Executing: " << cmd << "(" << param << ")" << std::endl;
-                rtlFmRunnerCmd.exec(param, &funcUpdatableString, RtlFmRunner::getInstance());
-                return funcUpdatableString;
-            }
-        }
-
         // SystemUtils commands
         for (size_t idx = 0; idx < SYSTEM_UTILS_CMDS_LIST_LENGTH; ++idx)
         {
@@ -193,25 +109,7 @@ std::string CommandParser::getCommandStringList() const
 {
     std::string cmdList = "\nSUPPORTED COMMANDS:\n";
 
-    cmdList.append("RTL FM PARAMETER BUILDER COMMANDS: \n");
-    for (size_t idx = 0; idx < RTL_FM_PARAMETER_BUILDER_CMDS_LIST_LENGTH; ++idx)
-    {
-        cmdList.append(RTL_FM_PARAMETER_BUILDER_CMDS[idx].getCommandString());
-        cmdList.append(" - ");
-        cmdList.append(RTL_FM_PARAMETER_BUILDER_CMDS[idx].getCommandDescription());
-        cmdList.append("\n");
-    }
-
-    cmdList.append("\nRTL FM RUNNER COMMANDS: \n");
-    for (size_t idx = 0; idx < RTL_FM_RUNNER_CMDS_LIST_LENGTH; ++idx)
-    {
-        cmdList.append(RTL_FM_RUNNER_CMDS[idx].getCommandString());
-        cmdList.append(" - ");
-        cmdList.append(RTL_FM_RUNNER_CMDS[idx].getCommandDescription());
-        cmdList.append("\n");
-    }
-
-    cmdList.append("\nSYSTEM UTILS COMMANDS: \n");
+    cmdList.append("SYSTEM UTILS COMMANDS: \n");
     for (size_t idx = 0; idx < SYSTEM_UTILS_CMDS_LIST_LENGTH; ++idx)
     {
         cmdList.append(SYSTEM_UTILS_CMDS[idx].getCommandString());

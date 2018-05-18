@@ -27,7 +27,6 @@
 
 // Project Includes
 #include "CommandParser.hpp"
-#include "RtlFmParameterBuilder.hpp"
 #include "SocketWrapper.hpp"
 #include "TcpServer.hpp"
 
@@ -47,7 +46,7 @@ const std::string TcpServer::END_OF_RESPONSE_STRING = "~EOR";
 /**
  * Default on-connect password for this client
  */
-const char * const TcpServer::DEFAULT_PASSWORD = "rtlsdrd";
+const char * const TcpServer::DEFAULT_PASSWORD = "netsysctrld";
 
 /**
  * Each socket read operation will read up to the newline specifier
@@ -232,7 +231,7 @@ void TcpServer::connectionHandler(SocketWrapper& sockWrap)
         // Used by receivedData to buffer data from the socket
         BoostStreamBuff socketReadStreamBuff;
 
-        // Request a password from the client if this instance of rtlsdrd
+        // Request a password from the client if this instance
         // requires a password, kill the connection if their response is invalid
         if (requirePassword && !authenticate(sockWrap, socketReadStreamBuff))
         {
@@ -240,9 +239,6 @@ void TcpServer::connectionHandler(SocketWrapper& sockWrap)
             return;
         }
 
-        // The parameter builder and parser are used for parsing and executing
-        // commands sent by the client
-        RtlFmParameterBuilder rtlFmWrapper;
         const CommandParser& parser = CommandParser::getInstance();
 
         while (true)
@@ -258,7 +254,7 @@ void TcpServer::connectionHandler(SocketWrapper& sockWrap)
                       << "\n\tcontent: " << receivedData << std::endl;
 
             // Parse and execute the command/data from the client
-            std::string parseResult = parser.execute(receivedData, rtlFmWrapper);
+            std::string parseResult = parser.execute(receivedData);
             parseResult.append("\n" + END_OF_RESPONSE_STRING + "\n");
 
             // Send the data back to the client
@@ -285,7 +281,7 @@ void TcpServer::connectionHandler(SocketWrapper& sockWrap)
  */
 void TcpServer::run()
 {
-    std::cout << "Rtlsdrd server started on:" << getServerInfo() << std::endl;
+    std::cout << "netsysctrld server started on:" << getServerInfo() << std::endl;
 
     while (true)
     {
@@ -429,7 +425,7 @@ void TcpServer::getClientsInfoHandler(const std::string& UNUSED,
 }
 
 /**
- * Specifies the TCP port number which this rtlsdrd instance will communicate
+ * Specifies the TCP port number which this instance will communicate
  * through
  */
 TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withPort(uint16_t port)
@@ -439,7 +435,7 @@ TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withPort(uint16_t port
 }
 
 /**
- * Specifies the password which this rtlsdrd instance will require clients to
+ * Specifies the password which this instance will require clients to
  * provide before they can gain control access
  */
 TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withPassword(const std::string& password)
@@ -466,7 +462,7 @@ TcpServerUniquePtr TcpServer::TcpServerBuilder::build() const
 }
 
 /**
- * Specifies that users connecting to rtlsdrd will not need to provide a
+ * Specifies that users connecting to this program will not need to provide a
  * password
  */
 TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withoutPassword()

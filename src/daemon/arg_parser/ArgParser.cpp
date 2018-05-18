@@ -16,7 +16,6 @@
 // Project Includes
 #include "ArgParser.hpp"
 #include "ArgParserFunction.hpp"
-#include "RtlFmParameterBuilder.hpp"
 #include "SystemUtils.hpp"
 #include "TcpServer.hpp"
 
@@ -28,12 +27,10 @@ const ArgParserFunction ArgParser::ARG_PARSER_FUNCTIONS[] =
         "Prints the arguments supported by this program"},
     ArgParserFunction {'a', "audiocontrol", &setAudioControlName, true,
         "Sets the audio control name used for volume control; see output of 'amixer scontrols'. Default: \"Master\""},
-    ArgParserFunction {'o', "outputdevice", &setAudioOutputDevice, true,
-        "Sets the ALSA name/address of the device to output the audio stream to; see 'aplay -L' and 'aplay -l'. Default: \"plughw:0,0\""},
     ArgParserFunction {'p', "password", &setServerPassword, true,
         "Sets the password which clients must provide to use this server. Default: no password"},
     ArgParserFunction {'P', "port", &setServerPort, true,
-        "Set the TCP port number of this rtlsdrd server. Default: 2832"}
+        "Set the TCP port number of this command server. Default: 2018"}
 };
 
 // Number of functions stored within ARG_PARSER_FUNCTIONS[]
@@ -347,17 +344,6 @@ void ArgParser::setAudioControlName(const std::string& audioControlName)
 }
 
 /**
- * Sets the ALSA name/address of the device to output the audio stream to;
- * see 'aplay -L' and 'aplay -l'
- */
-void ArgParser::setAudioOutputDevice(const std::string& audioOutputDevice)
-{
-    std::cout << "(ArgParser) Using audio output device: " << audioOutputDevice
-            << std::endl;
-    RtlFmParameterBuilder::setAudioOutputDeviceName(audioOutputDevice.c_str());
-}
-
-/**
  * Prints information about which arguments are supported by this program.
  * Following, this function sends a SIGTERM to the calling process, causing
  * the program to terminate. The logic behind this is that when the user
@@ -368,7 +354,7 @@ void ArgParser::printHelp(const std::string& UNUSED)
 {
     (void) UNUSED;
 
-    std::cout << "RTLSDRD Controller For RTL-SDR; AUTHOR: Bennett Sherman "
+    std::cout << "NETSYSCTRLD NETWORK CONTROL; AUTHOR: Bennett Sherman "
                  "(bennettmsherman@gmail.com)" << std::endl;
 
     std::cout << "AVAILABLE ARGUMENTS: " << std::endl;
@@ -394,22 +380,22 @@ void ArgParser::printHelp(const std::string& UNUSED)
     std::fflush(stdout);
 
     // Cause the program to terminate. The sighandler for SIGTERM is provided
-    // in rtlsdrd.cpp
+    // in netsysctrld.cpp
     raise(SIGTERM);
 }
 
 /**
- * Sets the password which the user must specify to utilize rtlsdrd
+ * Sets the password which the user must specify to utilize netsysctrld
  */
 void ArgParser::setServerPassword(const std::string& password)
 {
-    std::cout << "(ArgParser) Using rtlsdrd password: " << password
+    std::cout << "(ArgParser) Using netsysctrld password: " << password
             << std::endl;
     tcpServerBuilder.withPassword(password);
 }
 
 /**
- * Sets the TCP port number which rtlsdrd will communicate on. If the specified
+ * Sets the TCP port number which netsysctrld will communicate on. If the specified
  * port is greater than the TCP limit (65535), as std::invalid_argument
  * will be thrown
  */
@@ -423,7 +409,7 @@ void ArgParser::setServerPort(const std::string& portAsStr)
                 " is invalid!");
     }
 
-    std::cout << "(ArgParser) Using rtlsdrd port number: " << portAsStr
+    std::cout << "(ArgParser) Using netsysctrld port number: " << portAsStr
             << std::endl;
 
     tcpServerBuilder.withPort(portAsUl);

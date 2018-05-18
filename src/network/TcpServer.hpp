@@ -111,7 +111,7 @@ private:
     static const std::string REQUESTING_PASSWORD_STRING_PREFIX;
     static const std::string END_OF_RESPONSE_STRING;
     static const std::string SOCKET_READ_UNTIL_END_SPECIFIER;
-    static const uint16_t DEFAULT_PORT = 2832;
+    static const uint16_t DEFAULT_PORT = 2018;
     static const char * const DEFAULT_PASSWORD;
     static const std::string AUTH_SUCCESSFUL_STRING;
     static const std::string AUTH_FAILED_STRING;

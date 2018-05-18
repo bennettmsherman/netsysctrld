@@ -15,8 +15,6 @@
 
 // Project includes
 #include "Command.hpp"
-#include "RtlFmParameterBuilder.hpp"
-#include "RtlFmRunner.hpp"
 #include "SystemUtils.hpp"
 #include "TcpServer.hpp"
 
@@ -28,7 +26,7 @@ public:
     ////////////////////////////////
     static const CommandParser& getInstance();
 
-    std::string execute(const std::string& unparsedCommand, RtlFmParameterBuilder& rtlFmParamBuilder) const;
+    std::string execute(const std::string& unparsedCommand) const;
 
 private:
     ///////////////////////
@@ -55,8 +53,6 @@ private:
     /////////////////////////////
     // Private class Constants //
     /////////////////////////////
-    static const Command<RtlFmParameterBuilder> RTL_FM_PARAMETER_BUILDER_CMDS[];
-    static const Command<RtlFmRunner> RTL_FM_RUNNER_CMDS[];
     static const Command<SystemUtils> SYSTEM_UTILS_CMDS[];
     static const Command<TcpServer> SERVER_CMDS[];
 
@@ -73,8 +69,6 @@ private:
     static const std::string LIST_CMDS_COMMAND_STRING;
 
     // Lengths, in terms of the number of elements, in the different command lists
-    static const size_t RTL_FM_PARAMETER_BUILDER_CMDS_LIST_LENGTH;
-    static const size_t RTL_FM_RUNNER_CMDS_LIST_LENGTH;
     static const size_t SYSTEM_UTILS_CMDS_LIST_LENGTH;
     static const size_t SERVER_CMDS_LIST_LENGTH;
 
