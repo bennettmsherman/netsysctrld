@@ -17,6 +17,7 @@
 #include "SystemUtils.hpp"
 #include "SystemUtils.hpp"
 #include "TcpServer.hpp"
+#include "GpioController.hpp"
 
 // Static initialization
 const Command<SystemUtils> CommandParser::SYSTEM_UTILS_CMDS[]
@@ -30,17 +31,36 @@ const Command<TcpServer> CommandParser::SERVER_CMDS[]
     Command<TcpServer> { "CLIENTS_INFO", &TcpServer::getClientsInfoHandler, "Gets the IP and port #s of connected clients"}
 };
 
+const Command<GpioController> CommandParser::GPIO_CMDS[]
+{
+    Command<GpioController> { "GET_PINS", &GpioController::getPinMapping, "Gets the GPIO pin mapping registered with this server"},
+    Command<GpioController> { "OUTPUT_STATE", &GpioController::setPinOutputState, "Format: PinName=0(off)/1(on); Sets the output state of the named pin"},
+    Command<GpioController> { "ALL_LOW", &GpioController::setAllToOutputLow, "Sets all registered GPIO pins to low"},
+
+};
+
+
 const size_t CommandParser::SYSTEM_UTILS_CMDS_LIST_LENGTH = sizeof(SYSTEM_UTILS_CMDS) / sizeof(Command<SystemUtils>);
 const size_t CommandParser::SERVER_CMDS_LIST_LENGTH = sizeof(SERVER_CMDS) / sizeof(Command<TcpServer>);
+const size_t CommandParser::GPIO_CMDS_LIST_LENGTH = sizeof(GPIO_CMDS) / sizeof(Command<GpioController>);
+
 
 const std::string CommandParser::FUNCTION_AND_PARAM_SEPARATOR = "=";
-const std::regex CommandParser::CMD_REGEX { "^([A-Z0-9_]+)" + FUNCTION_AND_PARAM_SEPARATOR + "?([-]?[0-9a-zA-Z:]*\\.?[0-9a-zA-Z:]*)"};
+const std::regex CommandParser::CMD_REGEX { "^([A-Z0-9_]+)" +
+    FUNCTION_AND_PARAM_SEPARATOR + "?([-]?[0-9a-zA-Z:]*\\.?[0-9a-zA-Z:]*)"};
 const std::string CommandParser::LIST_CMDS_COMMAND_STRING {"HELP"};
 const std::string CommandParser::INVALID_SYNTAX_STRING {"~INVALID COMMAND SYNTAX"};
 const std::string CommandParser::NO_SUCH_COMMAND_EXISTS_STRING {"~NO SUCH COMMAND EXISTS"};
 const std::string CommandParser::INVALID_PARAMETER_STRING {"~INVALID PARAMETER"};
 const std::string CommandParser::EXECUTION_OK_STRING {"~OK"};
 const std::string CommandParser::UNUSED_PARAM_VALUE = "default";
+
+CommandParser::CommandParser(const TcpServerSharedPtr& tcpServer, const SystemUtilsSharedPtr& systemUtils,
+        const GpioController& gpioController):
+    tcpServer(tcpServer), systemUtilsPtr(std::move(systemUtils)), gpioController(gpioController)
+{
+
+}
 
 /**
  * The command specified by LIST_CMDS_COMMAND_STRING will result in a list of supported
@@ -50,7 +70,7 @@ const std::string CommandParser::UNUSED_PARAM_VALUE = "default";
  *
  * TODO: Throw exceptions for bad commands
  */
-std::string CommandParser::execute(const std::string& unparsedCommand) const
+std::string CommandParser::execute(const std::string& unparsedCommand)
 {
     std::string cmd;
     std::string param;
@@ -77,7 +97,7 @@ std::string CommandParser::execute(const std::string& unparsedCommand) const
             if (cmd.compare(systemUtilsCmd.getCommandString()) == 0)
             {
                 std::cout << "Executing: " << cmd << "(" << param << ")" << std::endl;
-                systemUtilsCmd.exec(param, &funcUpdatableString, SystemUtils::getInstance());
+                systemUtilsCmd.exec(param, &funcUpdatableString, *systemUtilsPtr);
                 return funcUpdatableString;
             }
         }
@@ -89,7 +109,19 @@ std::string CommandParser::execute(const std::string& unparsedCommand) const
             if (cmd.compare(serverCmd.getCommandString()) == 0)
             {
                 std::cout << "Executing: " << cmd << "(" << param << ")" << std::endl;
-                serverCmd.exec(param, &funcUpdatableString, TcpServer::getInstance());
+                serverCmd.exec(param, &funcUpdatableString, *tcpServer);
+                return funcUpdatableString;
+            }
+        }
+
+        // GPIO commands
+        for (size_t idx = 0; idx < GPIO_CMDS_LIST_LENGTH; ++idx)
+        {
+            Command<GpioController>gpioCmd = GPIO_CMDS[idx];
+            if (cmd.compare(gpioCmd.getCommandString()) == 0)
+            {
+                std::cout << "Executing: " << cmd << "(" << param << ")" << std::endl;
+                gpioCmd.exec(param, &funcUpdatableString, gpioController);
                 return funcUpdatableString;
             }
         }
@@ -124,6 +156,15 @@ std::string CommandParser::getCommandStringList() const
         cmdList.append(SERVER_CMDS[idx].getCommandString());
         cmdList.append(" - ");
         cmdList.append(SERVER_CMDS[idx].getCommandDescription());
+        cmdList.append("\n");
+    }
+
+    cmdList.append("\nGPIO COMMANDS: \n");
+    for (size_t idx = 0; idx < GPIO_CMDS_LIST_LENGTH; ++idx)
+    {
+        cmdList.append(GPIO_CMDS[idx].getCommandString());
+        cmdList.append(" - ");
+        cmdList.append(GPIO_CMDS[idx].getCommandDescription());
         cmdList.append("\n");
     }
 
@@ -175,12 +216,4 @@ bool CommandParser::parse(const std::string& unparsedCommand, std::string& comma
     return true;
 }
 
-/**
- * Returns a reference to the singleton CommandParser instance
- */
-const CommandParser& CommandParser::getInstance()
-{
-    static CommandParser instance{};
-    return instance;
-}
 

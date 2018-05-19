@@ -18,27 +18,30 @@
 #include "ArgParserFunction.hpp"
 #include "SystemUtils.hpp"
 #include "TcpServer.hpp"
+#include "GpioController.hpp"
+
 
 // Static Initialization
 // The arguments supported by the arg parser
 const ArgParserFunction ArgParser::ARG_PARSER_FUNCTIONS[] =
 {
-    ArgParserFunction {'h', "help", &printHelp, false,
+    ArgParserFunction {'h', "help", &ArgParser::printHelp, false,
         "Prints the arguments supported by this program"},
-    ArgParserFunction {'a', "audiocontrol", &setAudioControlName, true,
+    ArgParserFunction {'a', "audiocontrol", &ArgParser::setAudioControlName, true,
         "Sets the audio control name used for volume control; see output of 'amixer scontrols'. Default: \"Master\""},
-    ArgParserFunction {'p', "password", &setServerPassword, true,
+    ArgParserFunction {'p', "password", &ArgParser::setServerPassword, true,
         "Sets the password which clients must provide to use this server. Default: no password"},
-    ArgParserFunction {'P', "port", &setServerPort, true,
-        "Set the TCP port number of this command server. Default: 2018"}
+    ArgParserFunction {'P', "port", &ArgParser::setServerPort, true,
+        "Set the TCP port number of this command server. Default: 2018"},
+    ArgParserFunction {'g', "gpio", &ArgParser::addGpioPin, true,
+        "Adds a named gpio pin; requires form \"pinName=pinNum\""},
+    ArgParserFunction {'i', "gpioinit", &ArgParser::initGpioToOutputLow, false,
+        "Initializes provided GPIO pins to output low"},
 };
 
 // Number of functions stored within ARG_PARSER_FUNCTIONS[]
 const size_t ArgParser::ARG_PARSER_FUNCTIONS_LIST_LENGTH =
         sizeof(ARG_PARSER_FUNCTIONS)/sizeof(ArgParserFunction);
-
-TcpServer::TcpServerBuilder ArgParser::tcpServerBuilder;
-bool ArgParser::hasParserBeenExecuted = false;
 
 /**
  * The expected input is the argc (number of arguments) and argv[] (argument
@@ -53,25 +56,9 @@ bool ArgParser::hasParserBeenExecuted = false;
  * character prefixed with "-". Also accepted are "extended specifiers", which
  * are greater than one character and have the prefix "--". Each argument can
  * have at most one parameter.
- *
- * This parser will configure and instantiate several singletons. Due to this,
- * if this function is executed more than once, all executions following the
- * first will not reinstantiate these singletons. All executions following the
- * first will result in a std::logic_error being thrown.
  */
 void ArgParser::parse(int argc, const char *argv[])
 {
-    // If this function has been executed previously, throw a std::logic_error
-    if (hasParserBeenExecuted)
-    {
-        throw std::logic_error("Executing ArgParser::parse() more than once!"
-                " Parsed arguments will NOT be reflected.");
-    }
-    else
-    {
-        hasParserBeenExecuted = true;
-    }
-
     // Start at 1 to avoid element 0, which is the program name
     int argIdx = 1;
 
@@ -96,8 +83,6 @@ void ArgParser::parse(int argc, const char *argv[])
         }
     }
 
-    // Configure and instantiate the TcpServer singleton
-    TcpServer::getInstance(&tcpServerBuilder);
 }
 
 /**
@@ -142,14 +127,14 @@ void ArgParser::executeArgParserFunction(const ArgParserFunction* argParserFunc,
         // If this function requires an argument
         else
         {
-            argParserFunc->exec(nextArg);
+            argParserFunc->exec(nextArg, *this);
         }
     }
     // If the function associated with this ArgParserFunction DOESN'T
     // require a parameter
     else
     {
-        argParserFunc->exec();
+        argParserFunc->exec("", *this);
     }
     incrementArgIdx(argParserFunc, argvIdx);
 }
@@ -340,7 +325,7 @@ void ArgParser::setAudioControlName(const std::string& audioControlName)
 {
     std::cout << "(ArgParser) Using audio control name: " << audioControlName
             << std::endl;
-    SystemUtils::getInstance(audioControlName.c_str());
+    systemUtilsBuilder.withAudioControlName(audioControlName.c_str());
 }
 
 /**
@@ -414,3 +399,57 @@ void ArgParser::setServerPort(const std::string& portAsStr)
 
     tcpServerBuilder.withPort(portAsUl);
 }
+
+void ArgParser::addGpioPin(const std::string& namedPin)
+{
+    auto equalsIdx = namedPin.find("=");
+
+    if (equalsIdx == std::string::npos ||
+        equalsIdx == namedPin.length()-1 ||
+        namedPin.find("=", equalsIdx+1) != std::string::npos)
+    {
+        throw std::invalid_argument("Named pin: " + namedPin + " syntax invalid; "
+                "it must have the form \"pinName=pinNum\"");
+    }
+
+    std::string name = namedPin.substr(0, equalsIdx);
+    unsigned long num;
+    try {
+        num = std::stoul(namedPin.substr(equalsIdx+1));
+    }
+    catch(std::invalid_argument& except)
+    {
+        throw std::invalid_argument("Named pin: " + namedPin + " syntax invalid; "
+                "The number value must be an uint less than 65535");
+    }
+
+    if (num > UINT16_MAX)
+    {
+        throw std::invalid_argument("Named pin: " + namedPin + " invalid; "
+                "The number value must be an uint less than 65535");
+    }
+
+    gpioControllerBuilder.withNamedPin(name, num);
+}
+
+void ArgParser::initGpioToOutputLow(const std::string& UNUSED)
+{
+    (void) UNUSED;
+    gpioControllerBuilder.withGpioInitializedToOutputLow();
+}
+
+GpioController ArgParser::buildGpioController()
+{
+    return gpioControllerBuilder.build();
+}
+
+SystemUtilsSharedPtr ArgParser::buildSystemUtils()
+{
+    return systemUtilsBuilder.build();
+}
+
+TcpServerSharedPtr ArgParser::buildTcpServer()
+{
+    return tcpServerBuilder.build();
+}
+

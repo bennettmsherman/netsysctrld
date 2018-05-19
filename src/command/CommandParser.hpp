@@ -12,11 +12,16 @@
 #include <cstdint>
 #include <regex>
 #include <string>
+#include <memory>
 
 // Project includes
 #include "Command.hpp"
 #include "SystemUtils.hpp"
-#include "TcpServer.hpp"
+#include "GpioController.hpp"
+
+// Forward declarations
+class TcpServer;
+using TcpServerSharedPtr = std::shared_ptr<TcpServer>;
 
 class CommandParser
 {
@@ -24,28 +29,15 @@ public:
     ////////////////////////////////
     // Public interface functions //
     ////////////////////////////////
-    static const CommandParser& getInstance();
+    std::string execute(const std::string& unparsedCommand);
 
-    std::string execute(const std::string& unparsedCommand) const;
+    CommandParser(const TcpServerSharedPtr& tcpServerPtr, const SystemUtilsSharedPtr& systemUtilsPtr,
+            const GpioController& gpioController);
 
 private:
-    ///////////////////////
-    // Private functions //
-    ///////////////////////
-    /**
-     * A private constructor is required for the singleton pattern
-     */
-    CommandParser() = default;
-
-    /**
-     * Delete the default copy constructor
-     */
-    CommandParser(const CommandParser&) = delete;
-
-    /**
-     * Delete the default assignment operator
-     */
-    CommandParser& operator=(const CommandParser&) = delete;
+    const TcpServerSharedPtr tcpServer;
+    const SystemUtilsSharedPtr systemUtilsPtr;
+    GpioController gpioController;
 
     bool parse(const std::string& unparsedCommand, std::string& command, std::string& param) const;
     std::string getCommandStringList() const;
@@ -55,6 +47,7 @@ private:
     /////////////////////////////
     static const Command<SystemUtils> SYSTEM_UTILS_CMDS[];
     static const Command<TcpServer> SERVER_CMDS[];
+    static const Command<GpioController> GPIO_CMDS[];
 
     // The regex string used to parse commands
     static const std::regex CMD_REGEX;
@@ -71,6 +64,7 @@ private:
     // Lengths, in terms of the number of elements, in the different command lists
     static const size_t SYSTEM_UTILS_CMDS_LIST_LENGTH;
     static const size_t SERVER_CMDS_LIST_LENGTH;
+    static const size_t GPIO_CMDS_LIST_LENGTH;
 
     // Constant strings representing different parse/execution results
     static const std::string NO_SUCH_COMMAND_EXISTS_STRING;

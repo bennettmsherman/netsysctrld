@@ -220,7 +220,7 @@ bool TcpServer::authenticate(SocketWrapper& socketWrap, BoostStreamBuff& socketR
  * When this function terminates, the SocketWrapper parameter is removed
  * from the socketWrappersInUse list.
  */
-void TcpServer::connectionHandler(SocketWrapper& sockWrap)
+void TcpServer::connectionHandler(SocketWrapper& sockWrap, CommandParser& parser)
 {
     const std::string& clientIp = sockWrap.getIpAddress();
     uint16_t clientPort = sockWrap.getPortNumber();
@@ -238,8 +238,6 @@ void TcpServer::connectionHandler(SocketWrapper& sockWrap)
             removeFromSocketWrappersInUse(sockWrap);
             return;
         }
-
-        const CommandParser& parser = CommandParser::getInstance();
 
         while (true)
         {
@@ -279,7 +277,7 @@ void TcpServer::connectionHandler(SocketWrapper& sockWrap)
  * are associated with a SocketWrapper instance which is added to
  * socketWrappersInUse.
  */
-void TcpServer::run()
+void TcpServer::run(CommandParser& parser)
 {
     std::cout << "netsysctrld server started on:" << getServerInfo() << std::endl;
 
@@ -292,7 +290,7 @@ void TcpServer::run()
       // socketWrappersInUse, and send its reference as a param to the client
       // thread.
       boost::thread clientHandler(boost::bind(&TcpServer::connectionHandler, this,
-              boost::ref(appendToSocketWrappersInUse(tcpSocketPtr))));
+              boost::ref(appendToSocketWrappersInUse(tcpSocketPtr)), boost::ref(parser)));
     }
 }
 
@@ -368,30 +366,6 @@ void TcpServer::informAllClientsOfStateChange()
     }
 }
 
-/**
- * Used to instantiate and access the TcpServer singleton. When this function
- * is first executed, a new TcpServer is created using the specified port.
- * All subsequent calls to this function will return a reference to the
- * original instance, AND WILL IGNORE the contents of the parameter.
- *
- * If this function is called for the first time with nullptr as the parameter,
- * a std::invalid_argument is thrown.
- */
-TcpServer& TcpServer::getInstance(const TcpServerBuilder* tcpServerBuilder)
-{
-    static TcpServerUniquePtr server = nullptr;
-
-    if (!server && !tcpServerBuilder)
-    {
-        throw std::invalid_argument("Attempted to construct TcpServer using"
-                " nullptr");
-    }
-    else if (!server)
-    {
-        server = tcpServerBuilder->build();
-    }
-    return *server;
-}
 
 /**
  * For the SVR_ADDR command, retrieve a list of this server's NICs (and their
@@ -428,7 +402,7 @@ void TcpServer::getClientsInfoHandler(const std::string& UNUSED,
  * Specifies the TCP port number which this instance will communicate
  * through
  */
-TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withPort(uint16_t port)
+TcpServer::Builder& TcpServer::Builder::withPort(uint16_t port)
 {
     this->port = port;
     return *this;
@@ -438,26 +412,22 @@ TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withPort(uint16_t port
  * Specifies the password which this instance will require clients to
  * provide before they can gain control access
  */
-TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withPassword(const std::string& password)
+TcpServer::Builder& TcpServer::Builder::withPassword(const std::string& password)
 {
     usePassword = true;
     this->password = password;
     return *this;
 }
 
-/**
- * Dynamically allocates a new TcpServer instance, containing it within a
- * std::unique_ptr, which is returned
- */
-TcpServerUniquePtr TcpServer::TcpServerBuilder::build() const
+TcpServerSharedPtr TcpServer::Builder::build() const
 {
     if (usePassword)
     {
-        return TcpServerUniquePtr(new TcpServer(port, password.c_str()));
+        return TcpServerSharedPtr(new TcpServer(port, password.c_str()));
     }
     else
     {
-        return TcpServerUniquePtr(new TcpServer(port, nullptr));
+        return TcpServerSharedPtr(new TcpServer(port, nullptr));
     }
 }
 
@@ -465,7 +435,7 @@ TcpServerUniquePtr TcpServer::TcpServerBuilder::build() const
  * Specifies that users connecting to this program will not need to provide a
  * password
  */
-TcpServer::TcpServerBuilder& TcpServer::TcpServerBuilder::withoutPassword()
+TcpServer::Builder& TcpServer::Builder::withoutPassword()
 {
     usePassword = false;
     return *this;

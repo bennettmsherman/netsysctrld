@@ -4,17 +4,20 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/command/CommandParser.cpp 
+../src/daemon/arg_parser/ArgParser.cpp \
+../src/daemon/arg_parser/ArgParserFunction.cpp 
 
 OBJS += \
-./src/command/CommandParser.o 
+./src/daemon/arg_parser/ArgParser.o \
+./src/daemon/arg_parser/ArgParserFunction.o 
 
 CPP_DEPS += \
-./src/command/CommandParser.d 
+./src/daemon/arg_parser/ArgParser.d \
+./src/daemon/arg_parser/ArgParserFunction.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
-src/command/%.o: ../src/command/%.cpp
+src/daemon/arg_parser/%.o: ../src/daemon/arg_parser/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
 	g++ -std=c++14 -I../src/system -I/usr/include/boost -I../src/network -I../src/gpio -I../src/command -I../src/daemon -I../src/daemon/arg_parser -O2 -g -Wall -Wextra -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"

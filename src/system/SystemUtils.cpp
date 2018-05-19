@@ -15,7 +15,6 @@
 
 // Project Includes
 #include "SystemUtils.hpp"
-#include "TcpServer.hpp"
 
 // Static Initialization
 
@@ -24,7 +23,7 @@
 const char SystemUtils::VOLUME_SETTER_FORMAT[] = "amixer set %s %u%% -M";
 
 // Use "Master" as the default control
-const char * SystemUtils::DEFAULT_AUDIO_CONTROL_NAME = "Master";
+const std::string SystemUtils::DEFAULT_AUDIO_CONTROL_NAME = "Master";
 
 // The user specifies "VOLUME=newvol" to set the volume
 const std::string SystemUtils::VOLUME_SETTER_COMMAND = "VOLUME";
@@ -84,39 +83,19 @@ void SystemUtils::setVolumeCommandHandler(const std::string& vol, std::string* u
     {
         throw err;
     }
-
-    // Inform all clients of a state change if the vol was set successfully
-    TcpServer::getInstance().informAllClientsOfStateChange();
-}
-
-/**
- * Returns a reference to the singleton SystemUtils instance.
- * The first call to this function must set the audio control name.
- * The parameter is ignored in subsequent calls. The default parameter uses
- * "Master" for the audio control.
- */
-SystemUtils& SystemUtils::getInstance(const char * audioControlName)
-{
-    static SystemUtils instance{audioControlName};
-    return instance;
 }
 
 /*
  * Constructs a SystemUtils
  * Sets the audio control name to be used when changing the output volume
- * through the daemon. Throws std::invalid_argument and doesn't change the
- * class's pointer value if the parameter is null.
+ * through the daemon.
  * The systemVolume is initialized to 0, but isn't accurate until the user
  * first sets it.
  */
-SystemUtils::SystemUtils(const char * audioControlName):
+SystemUtils::SystemUtils(const std::string& audioControlName):
         audioControlName(audioControlName), systemVolume(0)
 {
-    if (audioControlName == nullptr)
-    {
-        throw std::invalid_argument("ERROR! A null pointer has been provided"
-                "as the audio control name!");
-    }
+
 }
 
 /**
@@ -127,3 +106,19 @@ uint8_t SystemUtils::getVolume()
     return systemVolume;
 }
 
+SystemUtils::Builder& SystemUtils::Builder::withAudioControlName(const char* audioControlName)
+{
+    if (audioControlName == nullptr)
+    {
+        throw std::invalid_argument("ERROR! A null pointer has been provided"
+                "as the audio control name!");
+    }
+
+    this->audioControlName = std::string(audioControlName);
+    return *this;
+}
+
+SystemUtilsSharedPtr SystemUtils::Builder::build()
+{
+    return SystemUtilsSharedPtr(new SystemUtils(audioControlName));
+}

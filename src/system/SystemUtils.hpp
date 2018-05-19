@@ -13,15 +13,18 @@
 #include <mutex>
 #include <string>
 #include <stdint.h>
+#include <memory>
 
 // Project Includes
 // <none>
 
+
+class SystemUtils;
+using SystemUtilsSharedPtr = std::shared_ptr<SystemUtils>;
+
 class SystemUtils
 {
 public:
-    static SystemUtils& getInstance(const char * audioControlName = DEFAULT_AUDIO_CONTROL_NAME);
-
     void setVolume(const uint8_t vol);
 
     uint8_t getVolume();
@@ -32,26 +35,23 @@ public:
     // The user specifies "VOLUME=newvol" to set the volume
     static const std::string VOLUME_SETTER_COMMAND;
 
+    class Builder
+    {
+    public:
+        Builder() {};
+        Builder& withAudioControlName(const char* audioControlName);
+        SystemUtilsSharedPtr build();
+    private:
+        std::string audioControlName = DEFAULT_AUDIO_CONTROL_NAME;
+    };
+
 private:
 
-    /**
-     * A private constructor is required for the singleton pattern
-     */
-    SystemUtils(const char * audioControlName = DEFAULT_AUDIO_CONTROL_NAME);
-
-    /**
-     * Delete the default copy constructor
-     */
-    SystemUtils(const SystemUtils&) = delete;
-
-    /**
-     * Delete the default assignment operator
-     */
-    SystemUtils& operator=(const SystemUtils&) = delete;
+    SystemUtils(const std::string& audioControlName = DEFAULT_AUDIO_CONTROL_NAME);
 
     static const char VOLUME_SETTER_FORMAT[];
 
-    static const char* DEFAULT_AUDIO_CONTROL_NAME;
+    static const std::string DEFAULT_AUDIO_CONTROL_NAME;
 
     // The name of the audio control to be used when changing the volume
     const std::string audioControlName;

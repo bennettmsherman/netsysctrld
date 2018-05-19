@@ -18,6 +18,8 @@
 #include "SystemUtils.hpp"
 #include "TcpServer.hpp"
 
+static TcpServerSharedPtr tcpServerPtr = nullptr;
+
 void terminationSignalHandler(int sigNum)
 {
     std::cout << "Received signal: " << strsignal(sigNum) << "(#" << sigNum <<
@@ -25,20 +27,23 @@ void terminationSignalHandler(int sigNum)
 
     // If exceptions aren't caught when killing the server, std::terminate()
     // will get called recursively.
-    try
+    if (tcpServerPtr)
     {
-        TcpServer::getInstance().terminate();
-    }
-    // We expect an invalid_argument to be thrown when calling getInstance() in
-    // the event that the server wasn't instantiated prior. We want to ignore
-    // such errors.
-    catch (std::invalid_argument& invalidArgErr)
-    {
-    }
-    catch (std::exception& genErr)
-    {
-        std::cerr << "Caught exception when trying to kill TcpServer; Message: "
-                  << genErr.what() << std::endl;
+        try
+        {
+           tcpServerPtr->terminate();
+        }
+        // We expect an invalid_argument to be thrown when calling getInstance() in
+        // the event that the server wasn't instantiated prior. We want to ignore
+        // such errors.
+        catch (std::invalid_argument& invalidArgErr)
+        {
+        }
+        catch (std::exception& genErr)
+        {
+            std::cerr << "Caught exception when trying to kill TcpServer; Message: "
+                      << genErr.what() << std::endl;
+        }
     }
 
     std::cout << "Exiting!" << std::endl;
@@ -55,8 +60,13 @@ int main(int argc, const char *argv[])
     signal(SIGKILL, terminationSignalHandler);
 
     // Parse and apply the command line arguments
-    ArgParser::parse(argc, argv);
+    ArgParser argParser{};
+    argParser.parse(argc, argv);
 
     // Have the server wait for, accept, and process connections
-    TcpServer::getInstance().run();
+    tcpServerPtr = argParser.buildTcpServer();
+    CommandParser cmdParser(tcpServerPtr, argParser.buildSystemUtils(),
+            argParser.buildGpioController());
+
+    tcpServerPtr->run(cmdParser);
 }

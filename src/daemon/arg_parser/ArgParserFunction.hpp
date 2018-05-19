@@ -11,6 +11,12 @@
 // System Includes
 #include <string>
 
+// Project Includes
+// <none>
+
+// Forward declarations
+class ArgParser;
+
 /**
  * A command line option's representation. A short specifier is one which
  * is prefixed with "-". An extended specifier is prefixed with "--". Each
@@ -23,7 +29,7 @@ class ArgParserFunction
 {
 public:
 
-    typedef void (*ArgParserFunc) (const std::string&);
+    using ArgParserFunc = void (ArgParser::*)(const std::string&);
 
     ////////////////////////////////
     // Public interface functions //
@@ -33,7 +39,7 @@ public:
             ArgParserFunc argParserFunc,
             bool requiresParameter, std::string descriptionParam);
 
-    void exec(std::string funcParam = "") const;
+    void exec(std::string funcParam, ArgParser& argParser) const;
 
     std::string getCommandDescription() const;
 

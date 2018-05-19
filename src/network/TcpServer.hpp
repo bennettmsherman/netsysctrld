@@ -14,49 +14,44 @@
 #include <list>
 #include <vector>
 #include <string>
+#include <memory>
 
 // Project Includes
 #include "SocketWrapper.hpp"
+#include "CommandParser.hpp"
 
 // Forward declarations
 class TcpServer;
+class CommandParser;
 
 // Using statements
 using BoostTcp = boost::asio::ip::tcp;
 using BoostIoService = boost::asio::io_service;
-using TcpServerUniquePtr = std::unique_ptr<TcpServer>;
+using TcpServerSharedPtr = std::shared_ptr<TcpServer>;
 
 class TcpServer
 {
 public:
 
-    // This unusual forward declaration is required to permit the friend func
-    // declaration within TcpServerBuilder
-    class TcpServerBuilder;
-    static TcpServer& getInstance(const TcpServerBuilder* tcpServerBuilder = nullptr);
-
-    class TcpServerBuilder
+    class Builder
     {
-    // This allows TcpServer::getInstance to call TcpServerBuilder.build()
-    friend TcpServer& TcpServer::getInstance(const TcpServerBuilder* tcpServerBuilder = nullptr);
     public:
-        TcpServerBuilder() : port(DEFAULT_PORT), usePassword(false),
+        Builder() : port(DEFAULT_PORT), usePassword(false),
                              password(DEFAULT_PASSWORD) {};
 
-        TcpServerBuilder& withPort(uint16_t port);
-        TcpServerBuilder& withPassword(const std::string& password);
-        TcpServerBuilder& withoutPassword();
+        Builder& withPort(uint16_t port);
+        Builder& withPassword(const std::string& password);
+        Builder& withoutPassword();
+        TcpServerSharedPtr build() const;
 
     private:
-        TcpServerUniquePtr build() const;
-
         uint16_t port;
         bool usePassword;
         std::string password;
     };
 
     void informAllClientsOfStateChange();
-    void run();
+    void run(CommandParser& parser);
     void terminate();
 
     // Interpreter-executable commands
@@ -64,21 +59,14 @@ public:
     void getClientsInfoHandler(const std::string& UNUSED, std::string* clientReturnableInfo);
 
 private:
-    // A private constructor is required for the singleton pattern
     TcpServer(const uint16_t port=DEFAULT_PORT, const char * const password=DEFAULT_PASSWORD);
-
-    // Delete the default copy constructor
-    TcpServer(const TcpServer&) = delete;
-
-    // Delete the default assignment operator
-    TcpServer& operator=(const TcpServer&) = delete;
 
     // General info retrieval and print functions
     std::string getServerInfo();
     std::vector<std::string> getLocalIpAddresses();
 
     // Thread to be executed for each client
-    void connectionHandler(SocketWrapper& sockWrap);
+    void connectionHandler(SocketWrapper& sockWrap, CommandParser& parser);
 
     // Locked mutators for socketWrappersInUse
     SocketWrapper& appendToSocketWrappersInUse(TcpSocketSharedPtr& newSocket);

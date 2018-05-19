@@ -10,6 +10,7 @@ RM := rm -rf
 -include sources.mk
 -include src/system/subdir.mk
 -include src/network/subdir.mk
+-include src/gpio/subdir.mk
 -include src/daemon/arg_parser/subdir.mk
 -include src/daemon/subdir.mk
 -include src/command/subdir.mk

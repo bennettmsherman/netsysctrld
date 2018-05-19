@@ -26,6 +26,7 @@ SUBDIRS := \
 src/command \
 src/daemon/arg_parser \
 src/daemon \
+src/gpio \
 src/network \
 src/system \
 

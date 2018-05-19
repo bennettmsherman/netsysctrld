@@ -10,6 +10,7 @@
 
 // Project Includes
 #include "ArgParserFunction.hpp"
+#include "ArgParser.hpp"
 
 // Static initialization
 const std::string ArgParserFunction::SHORT_SPECIFIER_IDENTIFIER = "-";
@@ -34,9 +35,9 @@ ArgParserFunction::ArgParserFunction(char shortSpecifier,
  * Executes the function pointed to by parserFunction with the parameter
  * funcParam.
  */
-void ArgParserFunction::exec(std::string funcParam) const
+void ArgParserFunction::exec(std::string funcParam, ArgParser& argParser) const
 {
-    (*parserFunction)(funcParam);
+    (argParser.*parserFunction)(funcParam);
 }
 
 std::string ArgParserFunction::getCommandDescription() const

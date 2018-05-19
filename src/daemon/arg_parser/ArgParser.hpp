@@ -15,23 +15,44 @@
 // Project Includes
 #include "ArgParserFunction.hpp"
 #include "TcpServer.hpp"
+#include "GpioController.hpp"
 
 class ArgParser
 {
 public:
-    static void parse(int argc, const char *argv[]);
+    void parse(int argc, const char *argv[]);
+
+    // Get generated instances
+    GpioController buildGpioController();
+    TcpServerSharedPtr buildTcpServer();
+    SystemUtilsSharedPtr buildSystemUtils();
 
 private:
 
-    // Private constructor
-    ArgParser();
+    /**
+     * NONSTATIC
+     */
+    TcpServer::Builder tcpServerBuilder;
+    GpioController::Builder gpioControllerBuilder;
+    SystemUtils::Builder systemUtilsBuilder;
 
-    // Delete the default copy constructor
-    ArgParser(const ArgParser&) = delete;
 
-    // Delete the default assignment operator
-    ArgParser& operator=(const ArgParser&) = delete;
+    // Functions which handle their associated arguments
+    void setAudioControlName(const std::string& audioControlName);
+    void setAudioOutputDevice(const std::string& audioOutputDevice);
+    void setServerPassword(const std::string& password);
+    void setServerPort(const std::string& portAsStr);
+    void addGpioPin(const std::string& namedPin);
+    void printHelp(const std::string& UNUSED);
+    void initGpioToOutputLow(const std::string& UNUSED);
 
+    void executeArgParserFunction(const ArgParserFunction* argParserFunc,
+            const std::string& argAsStr, int& argvIdx, const int argc,
+            const char *argv[]);
+
+    /**
+     * STATIC
+     */
     /* Describes the type of a detected argument.
      * SHORT refers to arguments preceded by "-"
      * EXTENDED refers to arguments preceded by "--"
@@ -42,28 +63,16 @@ private:
      */
     enum class ArgType {SHORT, EXTENDED, PARAM, INVALID};
 
-    // Functions which handle their associated arguments
-    static void setAudioControlName(const std::string& audioControlName);
-    static void setAudioOutputDevice(const std::string& audioOutputDevice);
-    static void printHelp(const std::string& UNUSED);
-    static void setServerPassword(const std::string& password);
-    static void setServerPort(const std::string& portAsStr);
-
     static ArgType determineArgType(const std::string& strToCheck);
     static void incrementArgIdx(const ArgParserFunction * const func, int& argIdx);
 
     static const ArgParserFunction* findByShortSpecifier(const std::string& shortSpecifierWithIdentifier);
     static const ArgParserFunction* findByExtendedSpecifier(const std::string& extendedSpecifierWithIdentifier);
     static const ArgParserFunction* getArgParserFunctionFromArg(const std::string& singlarArg);
-    static void executeArgParserFunction(const ArgParserFunction* argParserFunc,
-            const std::string& argAsStr, int& argvIdx, const int argc,
-            const char *argv[]);
 
     // Class variables
     static const ArgParserFunction ARG_PARSER_FUNCTIONS[];
     static const size_t ARG_PARSER_FUNCTIONS_LIST_LENGTH;
-    static TcpServer::TcpServerBuilder tcpServerBuilder;
-    static bool hasParserBeenExecuted;
 
 };
 
