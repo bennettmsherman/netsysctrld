@@ -17,14 +17,21 @@ sudo apt-get install libboost-all-dev
 
 ## To build:
 ```bash
-cd netsysctrld/Build
+Make the directory netsysctrld/build
+cd build
+cmake ../src
 make
 ```
 
 ## To clean:
 ```bash
-cd netsysctrld/Build
+cd netsysctrld/build
 make clean
+```
+
+## To remove build artifacts:
+```bash
+rm -rf netsysctrld/build/*
 ```
 
 ## To run:
