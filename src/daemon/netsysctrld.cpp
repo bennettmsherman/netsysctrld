@@ -9,7 +9,7 @@
 #include <string>
 #include <iostream>
 #include <csignal>
-#include <string.h>
+#include <cstring>
 #include <stdexcept>
 
 // Project Includes
@@ -23,7 +23,7 @@ static TcpServerSharedPtr tcpServerPtr = nullptr;
 void terminationSignalHandler(int sigNum)
 {
     std::cout << "Received signal: " << strsignal(sigNum) << "(#" << sigNum <<
-              ")" << std::endl;
+                 ")" << std::endl;
 
     // If exceptions aren't caught when killing the server, std::terminate()
     // will get called recursively.

@@ -8,7 +8,7 @@
 // System Includes
 #include <boost/asio.hpp>
 #include <mutex>
-#include <stdint.h>
+#include <cstdint>
 
 // Project Includes
 #include "SocketWrapper.hpp"
@@ -167,7 +167,7 @@ void SocketWrapper::sendDataVoidReturn(const std::string& dataToSend)
  */
 const std::string SocketWrapper::getIpAddressAndPort()
 {
-    std::string ipAndPort = "";
+    std::string ipAndPort;
     ipAndPort += ipAddr + ":" + std::to_string(portNum);
     return ipAndPort;
 }

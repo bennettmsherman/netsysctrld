@@ -82,11 +82,11 @@ void GpioController::getPinMapping(const std::string& UNUSED, std::string* updat
  */
 GpioController::PinState GpioController::convertPinStateCommandToPair(const std::string& pinInfo)
 {
-    auto equalsIdx = pinInfo.find(":");
+    auto equalsIdx = pinInfo.find(':');
 
     if (equalsIdx == std::string::npos ||
         equalsIdx == pinInfo.length()-1 ||
-        pinInfo.find(":", equalsIdx+1) != std::string::npos)
+        pinInfo.find(':', equalsIdx+1) != std::string::npos)
     {
         throw std::invalid_argument("Syntax err: " + pinInfo + "; It must have"
                 " the form \"pinName:0(off/low) or 1(on/high)\"");
@@ -143,7 +143,7 @@ void GpioController::setPinOutputState(const std::string& pinInfo, std::string* 
     std::string path = insertUInt8IntoString(PIN_VALUE_PATH_FORMAT,
             pinIter->second);
 
-    writePinState(path.c_str(), pinState.second);
+    writePinState(path, pinState.second);
 }
 
 /**
@@ -204,7 +204,7 @@ void GpioController::setAllToOutputLow(const std::string& UNUSED_IN,
     {
         std::string path = insertUInt8IntoString(PIN_VALUE_PATH_FORMAT,
                 namedPin.second);
-        writePinState(path.c_str(), OutputPinState::LOW);
+        writePinState(path, OutputPinState::LOW);
         *updatableMessage += "Pin: ";
         *updatableMessage += namedPin.first;
         *updatableMessage += " low\n";
